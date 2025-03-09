@@ -71,16 +71,19 @@ def handle_client(connected_client, addr):
 
             # Comando para listar arquivos do diretório atual
             elif command.lower() == "ls":
-                files = "\n".join(os.listdir(current_dir)) or "Diretório vazio.\n"  # Lista os arquivos
-                connected_client.sendall(b"\n" + files.encode() + b"\n")  # Envia a lista para o cliente
+                files = "\n".join(os.listdir(current_dir))  # Lista os arquivos
+                if not files:
+                    connected_client.sendall("O diretório está vazio.\n".encode())
+                else:
+                    connected_client.sendall(b"\n" + files.encode() + b"\n")  # Envia a lista para o cliente
 
             # Comando para voltar um diretório
             elif command.lower().split() == ["cd", ".."]: # Consegue verificar se possui espaços
-                if current_dir != "C:\\":  # Se não estiver no diretório raiz
+                if current_dir != BASE_DIR:  # Se não estiver no diretório raiz
                     current_dir = os.path.dirname(current_dir)  # Volta um nível
                     connected_client.sendall(f"Voltou um diretório. Atualmente em {os.path.basename(current_dir)}\n".encode())
                 else:
-                    connected_client.sendall("Já está na raiz!\n".encode())  # Mensagem de erro
+                    connected_client.sendall("Já está no diretório raiz!\n".encode())  # Mensagem de erro
 
             # Comando para mudar de diretório
             elif command.startswith("cd "):

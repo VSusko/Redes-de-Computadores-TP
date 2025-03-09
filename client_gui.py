@@ -45,18 +45,21 @@ class MyFTPGUI:
         self.root_window = root_window
         self.root_window.title("MyFTP Client")  # Define o título da janela
         self.root_window.geometry("500x500")    # Define o tamanho da janela
-        self.root_window.minsize(500, 500)      # Define o tamanho mínimo da janela
-        self.root_window.maxsize(500, 500)      # Define o tamanho máximo da janela
+        self.root_window.minsize(750, 500)      # Define o tamanho mínimo da janela
+        self.root_window.maxsize(750, 500)      # Define o tamanho máximo da janela             
+        self.root_window.configure(bg = "lightgray")
+        center_window(self.root_window, 750, 500)    # Centraliza a janela
 
         self.frame_login = tk.Frame(root_window)                 # Criação do frame de login (usando pack para organização)
         self.frame_login.pack(pady=50, fill="both", expand=True) # Adiciona espaçamento vertical
-        
-        tk.Label(self.frame_login, text="Usuário:").pack(pady=20) # Campo de entrada para o nome de usuário
+        self.frame_login.config(bg = "lightgray")
+
+        tk.Label(self.frame_login, text="Usuário:", bg = "lightgray").pack(pady=20) # Campo de entrada para o nome de usuário
         self.entry_user = tk.Entry(self.frame_login)
         self.entry_user.pack()                                    # Exibe o campo de usuario
         self.entry_user.bind("<Return>", lambda event: self.start_connection())
         
-        tk.Label(self.frame_login, text="Senha:").pack(pady=20) # Campo de entrada para a senha
+        tk.Label(self.frame_login, text="Senha:", bg = "lightgray").pack(pady=20) # Campo de entrada para a senha
         self.entry_pass = tk.Entry(self.frame_login, show="*")  # Oculta a senha digitada
         self.entry_pass.pack()                                  # Exibe o campo de senha
         self.entry_pass.bind("<Return>", lambda event: self.start_connection())
@@ -208,7 +211,5 @@ if __name__ == "__main__":
     root_window = tk.Tk()
     app = MyFTPGUI(root_window)  # Instancia a classe do cliente FTP
 
-     # Centraliza a janela
-    center_window(root_window, 500, 500)
 
     root_window.mainloop()  # Inicia o loop da interface gráfica
