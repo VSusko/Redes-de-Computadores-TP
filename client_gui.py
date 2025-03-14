@@ -16,6 +16,7 @@ PORT = 2121
 BASE_DIR = os.path.abspath("client_files")
 os.makedirs(BASE_DIR, exist_ok=True)  # Cria a pasta se ela não existir
 
+DEBUG = 1
 
 # ==================/ Classe para a interface /==================
 
@@ -37,6 +38,7 @@ class MyFTPGUI:
         self.root_window.minsize(950, 600)      # Define o tamanho mínimo da janela
         self.root_window.maxsize(950, 600)      # Define o tamanho máximo da janela             
         self.root_window.configure(bg = "lightgray")
+        self.root_window.protocol("WM_DELETE_WINDOW", self.close_app) # Encerra a aplicação no botao
         self.center_window(950, 600)    # Centraliza a janela
         
         self.login_screen()
@@ -45,6 +47,7 @@ class MyFTPGUI:
         
     def login_screen(self):
         # ================/ Configuracao da janela de login /================
+
         self.frame_login = tk.Frame(root_window)                 # Criação do frame de login (usando pack para organização)
         self.frame_login.pack(pady=50, fill="both", expand=True) # Adiciona espaçamento vertical
         self.frame_login.config(bg = "lightgray")
@@ -60,6 +63,8 @@ class MyFTPGUI:
         self.entry_pass.bind("<Return>", lambda event: self.start_connection())
     
         tk.Button(self.frame_login, text="Conectar", command=self.start_connection).pack(pady=60) # Botão para conectar ao servidor
+        
+        
     
     def center_window(self, width, height):
         # Obtém a largura e altura da tela do usuário
@@ -123,6 +128,8 @@ class MyFTPGUI:
         up_btn = tk.Button(server_toolbar, text="↑ Up", command=self.go_up_directory)
         up_btn.pack(side="left", padx=5, pady=5)
         
+        
+        
         # Arquivos do servidor
         server_file_frame = tk.Frame(server_frame)
         server_file_frame.pack(fill="both", expand=True)
@@ -174,6 +181,10 @@ class MyFTPGUI:
         # Área de saída de texto para exibir respostas do servidor
         self.text_output = tk.Text(bottom_frame, height=10, width=55)
         self.text_output.pack(padx=10, pady=5, fill="both", expand=True)
+        
+        
+        if DEBUG:
+            self.start_connection()
 
     # Métodos
     def refresh_client_files(self):
@@ -191,7 +202,8 @@ class MyFTPGUI:
                 else:
                     self.client_files_list.insert(tk.END, file)
         except Exception as e:
-            self.text_output.insert(tk.END, f"Erro ao carregar arquivos do cliente: {str(e)}")
+            self.text_output.insert(tk.END, f"Erro ao carregar arquivos do cliente: {str(e)}\n")
+            self.text_output.see(tk.END)
     
     def refresh_server_files(self):
         """Refresh the server files list"""
@@ -206,7 +218,10 @@ class MyFTPGUI:
             response = self.MyFTPClient.server_response()
             
             # Process the response
-            if response:
+            if  "O diretório está vazio" in response:
+                self.text_output.insert(tk.END, "Diretório vazio\n")
+                self.text_output.see(tk.END)
+            else:
                 # Split the response by newlines to get file list
                 files = response.strip().split('\n')
                 # Remove the prompt part if present
@@ -215,13 +230,9 @@ class MyFTPGUI:
                 for file in sorted(files):
                     self.server_files_list.insert(tk.END, file)
                 
-                self.text_output.insert(tk.END, "Arquivos do servidor carregados")
-                self.status_var.set("Server files loaded")
-            else:
-                self.text_output.insert(tk.END, "Sem arquivos no servidor ou resposta vazia")
-                self.status_var.set("No files on server or empty response")
         except Exception as e:
-           self.text_output.insert(tk.END, f"Erro ao carregar arquivos do servidor: {str(e)}")
+           self.text_output.insert(tk.END, f"Erro ao carregar arquivos do servidor: {str(e)}\n")
+           self.text_output.see(tk.END)
     
     def refresh_both(self):
         """Refresh both file lists"""
@@ -234,16 +245,36 @@ class MyFTPGUI:
         folder_name = tk.simpledialog.askstring("New Folder", "Enter folder name:")
         if folder_name:
             self.MyFTPClient.send_command(f"mkdir {folder_name}")
+            response = self.MyFTPClient.server_response()
             
+            if "Este diretório já existe" in response:
+                messagebox.showerror("ERRO","Este diretório já existe no sistema!")
+                return
+            
+            self.text_output.insert(tk.END, f"Diretório '{folder_name}' criado com Sucesso!\n")
+            self.text_output.see(tk.END)
+            self.refresh_server_files()
 
     def show_rmdir_dialog(self):
-        folder_name = tk.simpledialog.askstring("New Folder", "Enter folder name:")
-        if folder_name:
-            self.MyFTPClient.send_command(f"rmdir {folder_name}")
+        selection = self.server_files_list.curselection()
+        
+        if not selection:
+            messagebox.showerror("ERRO","Por favor, selecione alguma pasta")
+            return
+        
+        folder_name = self.server_files_list.get(selection[0])    
+        
+        if messagebox.askokcancel("Remover pasta", f"Tem certeza que deseja remover o diretório '{folder_name}'? Todos os arquivos contidos nele serão deletados"):
+            if self.MyFTPClient.send_command(f"rmdir {folder_name}"):
+                response = self.MyFTPClient.server_response()
+                self.text_output.insert(tk.END, (response.strip() + "\n"))
+                self.text_output.see(tk.END)
+                self.refresh_server_files()
 
     def download_file(self):
         """Download selected file from client to server"""
         selection = self.server_files_list.curselection()
+        
         if not selection:
             messagebox.showinfo("Selection Required", "Please select a file to download")
             return
@@ -276,14 +307,17 @@ class MyFTPGUI:
                     # Usa o cliente correto para receber os dados
                     data = self.MyFTPClient.client.recv(1024)
                     print("pacote recevido")
-                    if data == b"FIM_TRANSMISSAO":
+                    if b"FIM_TRANSMISSAO" in data:
                         print("cabou aq tb")
                         break
                     f.write(data)
             
             self.text_output.insert(tk.END, f"Arquivo '{file_get}' recebido com sucesso!\n")
+            self.text_output.see(tk.END)
+            self.refresh_client_files()
         except Exception as e:
-            self.text_output.insert(tk.END, f"Erro {str(e)}")
+            self.text_output.insert(tk.END, f"Erro {str(e)}\n")
+            self.text_output.see(tk.END)
 
     def upload_file(self):
         """Upload selected file from client to server"""
@@ -302,36 +336,35 @@ class MyFTPGUI:
             self.MyFTPClient.send_command(f"put {filename}")
             response = self.MyFTPClient.server_response()
             
-            file_put = response[4:].strip()
-            get_dir_name = os.path.join(BASE_DIR, file_put)
-            
-            with open(get_dir_name, "rb") as f:
-                data = f.read(1024)
-                while data:
-                    self.MyFTPClient.client.sendall(data)
-                    print("pacote enviado")
+            if response.startswith("put "):
+                file_path = os.path.join(BASE_DIR, filename)
+                
+                with open(file_path, "rb") as f:
                     data = f.read(1024)
+                    while data:
+                        self.MyFTPClient.client.sendall(data)
+                        data = f.read(1024)
+                
+                self.MyFTPClient.client.sendall(b"FIM_TRANSMISSAO")
+            else:
+                self.root_window.after(0, self.text_output.insert(tk.END, f"Upload failed: {response}"))
+                self.text_output.see(tk.END)
             
-            self.MyFTPClient.client.sendall(b"FIM_TRANSMISSAO")  # Envia fim de transmissão
             print("cabou")
             
-            self.text_output.insert(tk.END, f"Arquivo '{file_put}' recebido com sucesso!\n")
+            self.text_output.insert(tk.END, f"Arquivo '{filename}' enviado com sucesso!\n")
+            self.text_output.see(tk.END)
+            self.refresh_server_files()
         except Exception as e:
-            self.text_output.insert(tk.END, f"Erro {str(e)}")
+            self.text_output.insert(tk.END, f"Erro {str(e)}\n")
+            self.text_output.see(tk.END)
 
     def on_server_item_dblclick(self, event):
         """Handle double-click on server item (navigate folders)"""
         selection = self.server_files_list.curselection()
-        if not selection:
-            return
-            
-        item = self.server_files_list.get(selection[0])
+        directory_name = self.server_files_list.get(selection[0])
         
-        # Ver se é um diretorio (termina com "/")
-        if item.endswith("/"):
-            # Remove a barra
-            folder_name = item[:-1]
-            self.change_directory(folder_name)
+        self.change_directory(directory_name)
     
     def go_up_directory(self):
         """Navigate to parent directory"""
@@ -342,31 +375,66 @@ class MyFTPGUI:
             self.MyFTPClient.send_command("cd ..")
             response = self.MyFTPClient.server_response()
             self.text_output.insert(tk.END, (response.strip() + "\n"))
+            self.text_output.see(tk.END)
+            self.refresh_server_files()
         except Exception as e:
-            self.text_output.insert(tk.END, f"Erro {str(e)}")
+            self.text_output.insert(tk.END, f"Erro {str(e)}\n")
+            self.text_output.see(tk.END)
 
-
+    def change_directory(self, folder_name):
+        if not self.logged_in:
+            return
+            
+        try:
+            self.MyFTPClient.send_command(f"cd {folder_name}")
+            response = self.MyFTPClient.server_response()
+            
+            if "Diretório alterado" in response:
+                # Update display
+                if self.current_server_dir:
+                    self.current_server_dir += f"/{folder_name}"
+                else:
+                    self.current_server_dir = folder_name
+                    
+                self.refresh_server_files()
+                self.text_output.insert(tk.END, f"Mudou para o diretório: {folder_name}\n")
+                self.text_output.see(tk.END)
+            else:
+                self.text_output.insert(tk.END, "O arquivo não é um diretório!\n")
+                self.text_output.see(tk.END)
+        except Exception as e:
+            self.text_output.insert(tk.END, f"Erro: {str(e)}\n")
+            self.text_output.see(tk.END)
 
     def start_connection(self):
-        user     = self.entry_user.get().strip()  # Obtém o nome de usuário e remove espaços extras
-        password = self.entry_pass.get().strip()  # Obtém a senha e remove espaços extras
+        if DEBUG:
+            user = "1"
+            password = "1"
+        else:
+            user     = self.entry_user.get().strip()  # Obtém o nome de usuário e remove espaços extras
+            password = self.entry_pass.get().strip()  # Obtém a senha e remove espaços extras
         
         # Cria uma thread para conectar sem travar a GUI
         thread = threading.Thread(target=self.login_response, args=(user,password))
         thread.start()
 
     def login_response(self, user, password):
-        global logged_in
         try: 
+            if DEBUG:
+                self.MyFTPClient.login(user,password)
+                self.frame_login.pack_forget()  # Oculta a tela de login
+                self.frame_main.pack(fill="both", expand=True) 
+                self.logged_in = True
+                self.refresh_both()
+                return
+            
             if  self.MyFTPClient.login(user,password):
                 # Se o login for bem-sucedido, exibe uma mensagem e troca para a tela principal
                 messagebox.showinfo("Sucesso", "Login bem-sucedido!")
                 self.frame_login.pack_forget()  # Oculta a tela de login
                 self.frame_main.pack(fill="both", expand=True) 
-                self.refresh_both()
-                logged_in = True
                 self.logged_in = True
-                # self.text_output.insert(tk.END, ("Servidor MyFTP> "))
+                self.refresh_both()
 
             else:
                 # Se o login falhar, exibe uma mensagem de erro e fecha a conexão
@@ -379,8 +447,13 @@ class MyFTPGUI:
             self.client = None
     
     def close_app(self):
-        global logged_in
-        if logged_in: #Se o cliente ja fez o login, disconecta primeiro
+        if self.logged_in: #Se o cliente ja fez o login, disconecta primeiro
+            if DEBUG:
+                self.MyFTPClient.send_command("exit")
+                self.MyFTPClient.disconnect()
+                self.root_window.destroy()
+                return
+            
             if messagebox.askokcancel("Sair", "Tem certeza que deseja fechar o programa?"):
                 self.MyFTPClient.send_command("exit")
                 self.MyFTPClient.disconnect()
