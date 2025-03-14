@@ -21,6 +21,20 @@ server_thread = None  # Variável para armazenar a thread do servidor
 running = False  # Flag para indicar se o servidor está rodando
 client_threads = []
 
+
+
+# ==================/ Funcoes auxiliares /==================
+
+def remove_dir_safe(directory):
+    for item in os.listdir(directory):
+        item_path = os.path.join(directory, item)
+        if os.path.isdir(item_path):
+            remove_dir_safe(item_path)  # Remove subpastas recursivamente
+        else:
+            os.remove(item_path)  # Remove arquivos
+    os.rmdir(directory)  # Agora a pasta está vazia e pode ser removida
+
+
 # ==================/ Funcoes de interacao com cliente /==================
 
 # Função para tratar a conexão de um cliente
@@ -99,7 +113,7 @@ def handle_client(connected_client, addr):
             # Comandos não implementados
             elif command.startswith("mkdir "):
                 new_dir = command[6:].strip()
-                mkdir_name = os.path.join(BASE_DIR, new_dir)
+                mkdir_name = os.path.join(current_dir, new_dir)
 
                 # print(mkdir_name)  # Depuração
 
@@ -112,27 +126,32 @@ def handle_client(connected_client, addr):
 
             elif command.startswith("rmdir "):
                 old_dir = command[6:].strip()
-                rmdir_name = os.path.join(BASE_DIR, old_dir)
+                rmdir_name = os.path.join(current_dir, old_dir)
 
                 # print(rmdir_name)  # Depuração
 
-                if os.path.exists(rmdir_name):
-                    os.rmdir(rmdir_name)
-                    connected_client.sendall(f'Diretório "{old_dir}" deletado.\n'.encode())  # Mensagem formatada corretamente
-                else:
-                    connected_client.sendall("Este diretório não existe no sistema!\n".encode())  # Mensagem de erro
+                # if os.path.isdir(rmdir_name):
+                #     os.rmdir(rmdir_name)
+                #     connected_client.sendall(f'Diretório "{old_dir}" deletado.\n'.encode())  # Mensagem formatada corretamente
+                # else:
+                #     connected_client.sendall("Este diretório não existe no sistema!\n".encode())  # Mensagem de erro
+                if os.path.isdir(rmdir_name):
+                    remove_dir_safe(rmdir_name)
+                    connected_client.sendall(f"Diretório '{old_dir}' deletado.\n".encode())  # Mensagem formatada corretamente
+                else:                    
+                    connected_client.sendall("Este arquivo não é um diretório ou não existe no sistema!\n".encode())  # Mensagem de erro
+
 
             elif command.startswith("put "):
                 file_put = command[4:].strip()
-                put_dir_name = os.path.join(BASE_DIR, file_put)
+                put_dir_name = os.path.join(current_dir, file_put)
                 connected_client.sendall(f"put {file_put}".encode())  # Envia confirmação ao cliente
                 
                 with open(put_dir_name, "wb") as f:
                     while True:
                         # Usa o cliente correto para receber os dados
                         data = connected_client.recv(1024)
-                        print("pacote recevido")
-                        if data == b"FIM_TRANSMISSAO":
+                        if b"FIM_TRANSMISSAO" in data:
                             print("cabou aq tb")
                             break
                         f.write(data)
@@ -140,7 +159,7 @@ def handle_client(connected_client, addr):
 
             elif command.startswith("get "):
                 file_get = command[4:].strip()
-                get_dir_name = os.path.join(BASE_DIR, file_get)
+                get_dir_name = os.path.join(current_dir, file_get)
                 
                 if not os.path.exists(get_dir_name):  # Verifica se o arquivo existe
                     connected_client.sendall("ERRO: Arquivo ou pasta não encontrada\n".encode())
@@ -265,4 +284,4 @@ if __name__ == "__main__":
             print("Encerrando o programa...")
             break  # Sai do loop e finaliza o programa
         else:
-            print("Comando inválido! Use 'start', 'close' ou 'exit'.")
+            print("Comando inválido! Use 'start' ou 'exit'.")
