@@ -1,10 +1,8 @@
-import tkinter as tk                # Importa o módulo Tkinter para criar a interface gráfica
-from tkinter import messagebox      # Importa messagebox para exibir mensagens ao usuário
-import os                           # Importa os para manipulação de diretórios e arquivos
-import threading                    # Importa threading para permitir múltiplas conexões simultâneas
-from client_ftp import MyFTPClient  # Importa a lógica do FTP
-from tkinter import simpledialog
-
+import tkinter as tk                      # Importa o módulo Tkinter para criar a interface gráfica
+from tkinter import messagebox, simpledialog            # Importa messagebox para exibir mensagens ao usuário
+import os                                 # Importa os para manipulação de diretórios e arquivos
+import threading                          # Importa threading para permitir múltiplas conexões simultâneas
+from client_ftp import MyFTPClient        # Importa a lógica do FTP
 
 
 # ==================/ Variaveis de escopo global /==================
@@ -397,7 +395,7 @@ class MyFTPGUI:
                     self.current_server_dir = folder_name
                     
                 self.refresh_server_files()
-                self.text_output.insert(tk.END, f"Mudou para o diretório: {folder_name}\n")
+                self.text_output.insert(tk.END, f"Mudou para o diretório: '{folder_name}'\n")
                 self.text_output.see(tk.END)
             else:
                 self.text_output.insert(tk.END, "O arquivo não é um diretório!\n")
