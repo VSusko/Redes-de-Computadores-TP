@@ -96,38 +96,34 @@ class MyFTPGUI:
         # server_path_display.pack(side="left", padx=5, pady=5)
         
         # Buttons for common operations
-        refresh_btn = tk.Button(top_frame, text="Refresh", command=self.refresh_both)
+        refresh_btn = tk.Button(top_frame, text="Atualizar", command=self.refresh_both)
         refresh_btn.pack(side="left", padx=10, pady=5)
         
-        mkdir_btn = tk.Button(top_frame, text="New Folder", command=self.show_mkdir_dialog)
+        mkdir_btn = tk.Button(top_frame, text="Novo Diretório", command=self.show_mkdir_dialog)
         mkdir_btn.pack(side="right", padx=5, pady=5)
         
-        rmdir_btn = tk.Button(top_frame, text="Remove Folder", command=self.show_rmdir_dialog)
+        rmdir_btn = tk.Button(top_frame, text="Remover Diretório", command=self.show_rmdir_dialog)
         rmdir_btn.pack(side="right", padx=5, pady=5)
         
         # Main content with status bar for messages
         content_frame = tk.Frame(self.frame_main)
         content_frame.pack(fill="both", expand=True, padx=10, pady=5)
         
-        # # Status bar for messages
-        # self.status_var = tk.StringVar()
-        # status_bar = tk.Label(self.frame_main, textvariable=self.status_var, 
-        #                      bd=1, relief=tk.SUNKEN, anchor=tk.W)
-        # status_bar.pack(side=tk.BOTTOM, fill=tk.X)
-        
         # Painel esquerdo
-        server_frame = tk.LabelFrame(content_frame, text="Server Files")
+        server_frame = tk.LabelFrame(content_frame, text="Arquivos do Servidor")
         server_frame.pack(side="left", fill="both", expand=True, padx=5, pady=5)
         
         # Frame pro botão "Up"
         server_toolbar = tk.Frame(server_frame)
         server_toolbar.pack(fill="x")
         
-        up_btn = tk.Button(server_toolbar, text="↑ Up", command=self.go_up_directory)
+        up_btn = tk.Button(server_toolbar, text="↑ Diretório acima", command=self.go_up_directory)
         up_btn.pack(side="left", padx=5, pady=5)
         
-        
-        
+        # Label de diretorio atual
+        self.dir_label = tk.Label(server_toolbar, text=f"Diretório atual: 'server_files'")
+        self.dir_label.pack(pady=20)  
+              
         # Arquivos do servidor
         server_file_frame = tk.Frame(server_frame)
         server_file_frame.pack(fill="both", expand=True)
@@ -156,7 +152,7 @@ class MyFTPGUI:
         to_client_btn.pack(pady=10)
         
         # Painel direito
-        client_frame = tk.LabelFrame(content_frame , text="Client Files")
+        client_frame = tk.LabelFrame(content_frame , text="Arquivos do Cliente")
         client_frame.pack(side="right", fill="both", expand=True, padx=5, pady=5)
         
         # Arquivos do cliente
@@ -185,6 +181,11 @@ class MyFTPGUI:
             self.start_connection()
 
     # Métodos
+    
+    def update_dir_label(self, new_dirname):
+        self.dir_label.config(text=f"Diretório atual: '{new_dirname}'")
+    
+    
     def refresh_client_files(self):
         """Refresh the client files list"""
         self.client_files_list.delete(0, tk.END)
@@ -217,7 +218,6 @@ class MyFTPGUI:
             
             # Process the response
             if  "O diretório está vazio" in response:
-                self.text_output.insert(tk.END, "Diretório vazio\n")
                 self.text_output.see(tk.END)
             else:
                 # Split the response by newlines to get file list
@@ -240,7 +240,7 @@ class MyFTPGUI:
         self.text_output.delete("1.0", tk.END)  # Limpa toda a área de texto
 
     def show_mkdir_dialog(self):
-        folder_name = tk.simpledialog.askstring("New Folder", "Enter folder name:")
+        folder_name = tk.simpledialog.askstring("Novo Diretório", "Insira o nome do diretório:")
         if folder_name:
             self.MyFTPClient.send_command(f"mkdir {folder_name}")
             response = self.MyFTPClient.server_response()
@@ -345,7 +345,7 @@ class MyFTPGUI:
                 
                 self.MyFTPClient.client.sendall(b"FIM_TRANSMISSAO")
             else:
-                self.root_window.after(0, self.text_output.insert(tk.END, f"Upload failed: {response}"))
+                self.root_window.after(0, self.text_output.insert(tk.END, f"Upload falhou: {response}"))
                 self.text_output.see(tk.END)
             
             print("cabou")
@@ -375,6 +375,10 @@ class MyFTPGUI:
             self.text_output.insert(tk.END, (response.strip() + "\n"))
             self.text_output.see(tk.END)
             self.refresh_server_files()
+            if "diretório raiz" in response:
+                self.update_dir_label("server_files")
+            else:
+                self.update_dir_label(response[35:].strip())
         except Exception as e:
             self.text_output.insert(tk.END, f"Erro {str(e)}\n")
             self.text_output.see(tk.END)
@@ -397,6 +401,7 @@ class MyFTPGUI:
                 self.refresh_server_files()
                 self.text_output.insert(tk.END, f"Mudou para o diretório: '{folder_name}'\n")
                 self.text_output.see(tk.END)
+                self.update_dir_label(folder_name)
             else:
                 self.text_output.insert(tk.END, "O arquivo não é um diretório!\n")
                 self.text_output.see(tk.END)
