@@ -1,8 +1,8 @@
-import tkinter as tk                      # Importa o módulo Tkinter para criar a interface gráfica
-from tkinter import messagebox, simpledialog            # Importa messagebox para exibir mensagens ao usuário
-import os                                 # Importa os para manipulação de diretórios e arquivos
-import threading                          # Importa threading para permitir múltiplas conexões simultâneas
-from client_ftp import MyFTPClient        # Importa a lógica do FTP
+import tkinter as tk                         # Importa o módulo Tkinter para criar a interface gráfica
+from tkinter import messagebox, simpledialog # Importa messagebox para exibir mensagens ao usuário
+import os                                    # Importa os para manipulação de diretórios e arquivos
+import threading                             # Importa threading para permitir múltiplas conexões simultâneas
+from client_ftp import MyFTPClient           # Importa a lógica do FTP
 
 
 # ==================/ Variaveis de escopo global /==================
@@ -14,7 +14,8 @@ PORT = 2121
 BASE_DIR = os.path.abspath("client_files")
 os.makedirs(BASE_DIR, exist_ok=True)  # Cria a pasta se ela não existir
 
-DEBUG = 1
+# Flag de debug
+DEBUG = 0
 
 # ==================/ Classe para a interface /==================
 
@@ -319,7 +320,8 @@ class MyFTPGUI:
             
             # Usa o cliente correto para enviar "READY"
             self.MyFTPClient.client.sendall("READY".encode())
-            print("ready enviado")
+            if DEBUG:
+                print("ready enviado")
             
             # Define o caminho completo para salvar o arquivo
             save_path = os.path.join(BASE_DIR, file_get)
@@ -328,9 +330,11 @@ class MyFTPGUI:
                 while True:
                     # Usa o cliente correto para receber os dados
                     data = self.MyFTPClient.client.recv(1024)
-                    print("pacote recevido")
+                    if DEBUG:
+                        print("pacote recebido")
                     if b"FIM_TRANSMISSAO" in data:
-                        print("cabou aq tb")
+                        if DEBUG:
+                            print("fim dos pacotes no cliente")
                         break
                     f.write(data)
             
@@ -383,7 +387,8 @@ class MyFTPGUI:
                 self.root_window.after(0, self.text_output.insert(tk.END, f"Upload falhou: {response}"))
                 self.text_output.see(tk.END)
             
-            print("cabou")
+            if DEBUG:
+                print("Fim da transmissão no cliente")
             
             # Mensagem de feedback 
             self.text_output.insert(tk.END, f"Arquivo '{filename}' enviado com sucesso!\n")

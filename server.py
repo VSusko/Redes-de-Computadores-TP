@@ -16,12 +16,13 @@ BASE_DIR = os.path.abspath("server_files")
 os.makedirs(BASE_DIR, exist_ok=True)  # Cria a pasta se ela não existir
 
 
-server = None  # Variável global para armazenar o socket do servidor
-server_thread = None  # Variável para armazenar a thread do servidor
-running = False  # Flag para indicar se o servidor está rodando
-client_threads = []
+server = None           # Variável global para armazenar o socket do servidor
+server_thread = None    # Variável para armazenar a thread do servidor
+running = False         # Flag para indicar se o servidor está rodando
+client_threads = []     # Lista de threads dos clientes
 
-
+# Flag de debug
+DEBUG = 0 
 
 # ==================/ Funcoes auxiliares /==================
 
@@ -54,15 +55,19 @@ def handle_client(connected_client, addr):
         connected_client.sendall("<Servidor>| Pedido de Login\n".encode())  # Solicita o login do usuário
         
         username = connected_client.recv(1024).decode().strip() # Recebe o login
-        print("Usuário recebido: ", username)                   # Mensagem de depuração
+
+        if DEBUG:
+            print("Usuário recebido: ", username)                   
 
         connected_client.sendall("<Servidor>| Pedido de Senha\n".encode())  # Solicita a senha do usuário
         password = connected_client.recv(1024).decode().strip()             # Recebe a senha
-        print("Senha recebida: ", password)                               # Mensagem de depuração
 
-        print("USERS.GET = ", USERS.get(username))  # Exibe a senha armazenada para depuração
+        if DEBUG:
+            print("Senha recebida: ", password)                               
+            print("USERS.GET = ", USERS.get(username))  
 
         # ================/ Verificacao se o usuário e senha são válidos /================
+        
         if USERS.get(username) != password:
             connected_client.sendall("<Servidor>| Login falhou. Conexão encerrada.\n".encode())  # Mensagem de erro
             connected_client.close()  # Fecha a conexão
@@ -109,26 +114,32 @@ def handle_client(connected_client, addr):
                     connected_client.sendall(b"\n" + response.encode() + b"\n")  
 
             # Comando para voltar um diretório
-            elif command.lower().split() == ["cd", ".."]: # Consegue verificar se possui espaços
-                if current_dir != BASE_DIR:  # Se não estiver no diretório raiz
-                    current_dir = os.path.dirname(current_dir)  # Volta um nível
+            elif command.lower().split() == ["cd", ".."]: 
+                # Se não estiver no diretório raiz, volta um nível
+                if current_dir != BASE_DIR:  
+                    current_dir = os.path.dirname(current_dir)
                     connected_client.sendall(f"Voltou um diretório. Atualmente em {os.path.basename(current_dir)}\n".encode())
+                # Caso contrário, valida a entrada
                 else:
                     connected_client.sendall("Já está no diretório raiz!\n".encode())  # Mensagem de erro
 
             # Comando para mudar de diretório
             elif command.startswith("cd "):
-                new_dir = command[3:].strip()  # Obtém o nome do diretório
-                path = os.path.join(current_dir, new_dir)  # Cria o caminho absoluto
-                if os.path.isdir(path):  # Verifica se o diretório existe
-                    current_dir = path  # Atualiza o diretório atual
+                # Obtndo o nome do diretório
+                new_dir = command[3:].strip()  
+                # Cria o caminho absoluto
+                path = os.path.join(current_dir, new_dir)  
+                # Se o diretório existe, atualiza o diretorio atual
+                if os.path.isdir(path):  
+                    current_dir = path 
                     connected_client.sendall(f"Diretório alterado. Atualmente em {new_dir}\n".encode())
+                # Caso contrario, o diretorio não existe
                 else:
                     connected_client.sendall("Diretório não encontrado.\n".encode())
 
             # Comando para criar um novo diretório no servidor
             elif command.startswith("mkdir "):
-                # Obtem o nome do diretorio
+                # Obtendo o nome do diretorio
                 new_dir = command[6:].strip()
                 new_dir_path = os.path.join(current_dir, new_dir)
 
@@ -158,36 +169,45 @@ def handle_client(connected_client, addr):
 
             # Comando para receber um arquivo do cliente para o servidor
             elif command.startswith("put "):
+                # Obtendo o arquivo e o diretorio destino
                 file_put = command[4:].strip()
                 put_dir_name = os.path.join(current_dir, file_put)
-                connected_client.sendall(f"put {file_put}".encode())  # Envia confirmação ao cliente
+                # Envia confirmação ao cliente
+                connected_client.sendall(f"put {file_put}".encode())  
                 
                 with open(put_dir_name, "wb") as f:
                     while True:
                         # Usa o cliente correto para receber os dados
                         data = connected_client.recv(1024)
                         if b"FIM_TRANSMISSAO" in data:
-                            print("cabou aq tb")
+                            print("fim dos pacotes no servidor")
                             break
                         f.write(data)
             
             # Comando para enviar um arquivo do servidor para o cliente
             elif command.startswith("get "):
+                # Obtendo o arquivo e o diretorio destino
                 file_get = command[4:].strip()
                 get_dir_name = os.path.join(current_dir, file_get)
                 
-                if not os.path.exists(get_dir_name):  # Verifica se o arquivo existe
+                # Validação caso o diretório não exista
+                if not os.path.exists(get_dir_name):  
                     connected_client.sendall("ERRO: Arquivo ou pasta não encontrada\n".encode())
                     continue
-                elif os.path.isdir(get_dir_name):  # Impede envio de pastas
+                # Validação caso o arquivo seja uma pasta
+                elif os.path.isdir(get_dir_name):  
                     connected_client.sendall("ERRO: Não é possível enviar pastas\n".encode())
                     continue
+                # Envio do arquivo 
                 else:
                     connected_client.sendall(f"get {file_get}".encode())  # Envia confirmação ao cliente
-                    print("confirmação")
-                
+                    if DEBUG:
+                        print("confirmação") 
+                # Se a mensagem de recebimento foi entregue, começa o envio dos pacotes
                 if connected_client.recv(1024).decode().strip() == "READY":
-                    print("ready recebido")
+                    if DEBUG:
+                        print("ready recebido")
+                    
                     with open(get_dir_name, "rb") as f:
                         data = f.read(1024)
                         while data:
@@ -195,13 +215,15 @@ def handle_client(connected_client, addr):
                             print("pacote enviado")
                             data = f.read(1024)
                     
-                    connected_client.sendall(b"FIM_TRANSMISSAO")  # Envia fim de transmissão
-                    print("cabou")
+                    # Envia fim de transmissão
+                    connected_client.sendall(b"FIM_TRANSMISSAO")  
+                    if DEBUG:
+                        print("Fim da transmissão no servidor")
                     #connected_client.sendall(f"Arquivo '{file_get}' enviado com sucesso!\n".encode())
                 else:
-                    print("Cliente não ficou pronto!")
+                    print("O cliente não ficou pronto!")
 
-            # Comando desconhecido
+            # Tratamento de qualquer outro comando
             else:
                 connected_client.sendall("Comando desconhecido\n".encode())
 
@@ -245,12 +267,7 @@ def start_server():
                     break
                 else:
                     raise  # Caso contrário, levanta novamente a exceção
-            # except socket.timeout:
-            #     if not running:  # Verifica se o servidor foi encerrado enquanto esperava
-            #         break
-            #     # Apenas imprime uma mensagem e continua aguardando novas conexões
-            #     print("Nenhuma conexão recebida. Timeout expirado.")
-            #     continue
+    # Interrupção de teclado
     except KeyboardInterrupt:
         print("Usuário deu ctrl+C")
         server.close()
@@ -278,10 +295,11 @@ def stop_server():
 
 # Execução principal do programa
 if __name__ == "__main__":
+    # Laço infinito
     while True:
-        
+        # Comandos do servidor
         server_state = input("Digite um comando (start/exit):\n").strip().lower()
-
+        # Se o usuario digita start e não existe nenhuma thread ativa, o servidor é aberto 
         if server_state == "start":
             if server_thread and server_thread.is_alive():
                 print("O servidor já está rodando.")
@@ -289,7 +307,7 @@ if __name__ == "__main__":
                 server_thread = threading.Thread(target=start_server, daemon=True)
                 server_thread.start()
                 print("Servidor iniciado.")
-
+        # Se o usuário digita exit, encerra o servidor
         elif server_state == "exit":
             if server and running:
                 stop_server()
