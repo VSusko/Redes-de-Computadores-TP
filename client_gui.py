@@ -524,7 +524,11 @@ class MyFTPGUI:
             # Se o login falhar, exibe uma mensagem de erro e fecha a conexão
             else:
                 messagebox.showerror("Erro", "Login falhou!")
-                self.MyFTPClient.disconnect(self.MyFTPClient) 
+                # self.MyFTPClient.send_command("exit")
+                self.MyFTPClient.disconnect()
+                self.entry_user.delete(0, tk.END)
+                self.entry_pass.delete(0, tk.END)
+
     
         # Tratamento de exceções
         except Exception as e:
@@ -537,13 +541,13 @@ class MyFTPGUI:
         if self.logged_in: 
             # Diretiva de debug para pular a confirmação de encerramento
             if DEBUG:
-                self.MyFTPClient.send_command("exit")
+                # self.MyFTPClient.send_command("exit")
                 self.MyFTPClient.disconnect()
                 self.root_window.destroy()
                 return
             # Confirmação do encerramento do programa
             if messagebox.askokcancel("Sair", "Tem certeza que deseja fechar o programa?"):
-                self.MyFTPClient.send_command("exit")
+                # self.MyFTPClient.send_command("exit")
                 self.MyFTPClient.disconnect()
             # Caso não confirme, apenas retorna
             else:

@@ -67,8 +67,8 @@ def handle_client(connected_client, addr):
             print("USERS.GET = ", USERS.get(username))  
 
         # ================/ Verificacao se o usuário e senha são válidos /================
-        
         if USERS.get(username) != password:
+            print(f"Conexão encerrada com {addr}")
             connected_client.sendall("<Servidor>| Login falhou. Conexão encerrada.\n".encode())  # Mensagem de erro
             connected_client.close()  # Fecha a conexão
             return  # Encerra a função
@@ -180,7 +180,8 @@ def handle_client(connected_client, addr):
                         # Usa o cliente correto para receber os dados
                         data = connected_client.recv(1024)
                         if b"FIM_TRANSMISSAO" in data:
-                            print("fim dos pacotes no servidor")
+                            if DEBUG:
+                                print("fim dos pacotes no servidor")
                             break
                         f.write(data)
             
@@ -212,7 +213,8 @@ def handle_client(connected_client, addr):
                         data = f.read(1024)
                         while data:
                             connected_client.sendall(data)
-                            print("pacote enviado")
+                            if DEBUG:
+                                print("pacote enviado")
                             data = f.read(1024)
                     
                     # Envia fim de transmissão

@@ -52,5 +52,6 @@ class MyFTPClient:
 
     def disconnect(self):
         if self.client:  # Verifica se a conexão existe
+            self.send_command("exit")
             self.client.close() # Encerra a conexao de rede
             self.client = None 
