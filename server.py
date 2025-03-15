@@ -25,14 +25,17 @@ client_threads = []
 
 # ==================/ Funcoes auxiliares /==================
 
+# Funcao de remover os diretorios recursivamente
 def remove_dir_safe(directory):
     for item in os.listdir(directory):
         item_path = os.path.join(directory, item)
         if os.path.isdir(item_path):
-            remove_dir_safe(item_path)  # Remove subpastas recursivamente
+            remove_dir_safe(item_path)  
         else:
-            os.remove(item_path)  # Remove arquivos
-    os.rmdir(directory)  # Agora a pasta está vazia e pode ser removida
+            # Remove arquivos
+            os.remove(item_path)  
+    # Agora a pasta está vazia e pode ser removida
+    os.rmdir(directory)  
 
 
 # ==================/ Funcoes de interacao com cliente /==================
@@ -85,11 +88,25 @@ def handle_client(connected_client, addr):
 
             # Comando para listar arquivos do diretório atual
             elif command.lower() == "ls":
-                files = "\n".join(os.listdir(current_dir))  # Lista os arquivos
+                # Lista os arquivos e diretórios
+                items = os.listdir(current_dir)  
+                files = []
+
+                for item in items:
+                    # Se o item é um diretório, concatena o caracter '/'
+                    if os.path.isdir(os.path.join(current_dir, item)):  
+                        files.append(item + "/") 
+                    # Caso contrário, apenas adiciona o arquivo na lista
+                    else:
+                        files.append(item)  
+
+                # Validação da lista está vazia
                 if not files:
                     connected_client.sendall("O diretório está vazio.\n".encode())
+                # Envia a lista formatada
                 else:
-                    connected_client.sendall(b"\n" + files.encode() + b"\n")  # Envia a lista para o cliente
+                    response = "\n".join(files)
+                    connected_client.sendall(b"\n" + response.encode() + b"\n")  
 
             # Comando para voltar um diretório
             elif command.lower().split() == ["cd", ".."]: # Consegue verificar se possui espaços
@@ -109,39 +126,37 @@ def handle_client(connected_client, addr):
                 else:
                     connected_client.sendall("Diretório não encontrado.\n".encode())
 
-
-            # Comandos não implementados
+            # Comando para criar um novo diretório no servidor
             elif command.startswith("mkdir "):
+                # Obtem o nome do diretorio
                 new_dir = command[6:].strip()
-                mkdir_name = os.path.join(current_dir, new_dir)
+                new_dir_path = os.path.join(current_dir, new_dir)
 
-                # print(mkdir_name)  # Depuração
-
-                if not os.path.exists(mkdir_name):
-                    os.mkdir(mkdir_name)
-                    connected_client.sendall(f'Diretório "{new_dir}" criado.\n'.encode())  # Mensagem formatada corretamente
+                # Se o diretório ainda não existe, o sistema operacional o cria
+                if not os.path.exists(new_dir_path):
+                    os.mkdir(new_dir_path)
+                    # Mensagem formatada corretamente
+                    connected_client.sendall(f'Diretório "{new_dir}" criado.\n'.encode())  
+                # Caso contrário, valida se o diretório já existe
                 else:
-                    connected_client.sendall("Este diretório já existe no sistema!\n".encode())  # Mensagem de erro
+                    connected_client.sendall("Este diretório já existe no sistema!\n".encode()) 
                 
-
+            # Comando para remover um diretório no servidor
             elif command.startswith("rmdir "):
+                # Obtem o nome do diretorio
                 old_dir = command[6:].strip()
-                rmdir_name = os.path.join(current_dir, old_dir)
+                old_dir_path = os.path.join(current_dir, old_dir)
 
-                # print(rmdir_name)  # Depuração
-
-                # if os.path.isdir(rmdir_name):
-                #     os.rmdir(rmdir_name)
-                #     connected_client.sendall(f'Diretório "{old_dir}" deletado.\n'.encode())  # Mensagem formatada corretamente
-                # else:
-                #     connected_client.sendall("Este diretório não existe no sistema!\n".encode())  # Mensagem de erro
-                if os.path.isdir(rmdir_name):
-                    remove_dir_safe(rmdir_name)
-                    connected_client.sendall(f"Diretório '{old_dir}' deletado.\n".encode())  # Mensagem formatada corretamente
+                # Se o diretório ainda existe, o sistema operacional o deleta
+                if os.path.isdir(old_dir_path):
+                    remove_dir_safe(old_dir_path)
+                    # Mensagem formatada corretamente
+                    connected_client.sendall(f"Diretório '{old_dir}' deletado.\n".encode())  
+                # Caso contrário, valida se o diretório não existe
                 else:                    
                     connected_client.sendall("Este arquivo não é um diretório ou não existe no sistema!\n".encode())  # Mensagem de erro
 
-
+            # Comando para receber um arquivo do cliente para o servidor
             elif command.startswith("put "):
                 file_put = command[4:].strip()
                 put_dir_name = os.path.join(current_dir, file_put)
@@ -156,7 +171,7 @@ def handle_client(connected_client, addr):
                             break
                         f.write(data)
             
-
+            # Comando para enviar um arquivo do servidor para o cliente
             elif command.startswith("get "):
                 file_get = command[4:].strip()
                 get_dir_name = os.path.join(current_dir, file_get)
@@ -190,14 +205,18 @@ def handle_client(connected_client, addr):
             else:
                 connected_client.sendall("Comando desconhecido\n".encode())
 
+    # Tratamento de exceções
     except Exception as e:
-        print(f"Erro com {addr}: {e}")  # Exibe erros no terminal
-    # finally:
-    print(f"Conexão encerrada com {addr}")  # Mensagem de desconexão
-    connected_client.close()  # Fecha a conexão com o cliente
+        # Exibe erros no terminal
+        print(f"Erro com {addr}: {e}")
+          
+    # Mensagem de desconexão e fechamento da conexão com o cliente
+    print(f"Conexão encerrada com {addr}")  
+    connected_client.close()  
 
 
 # ================/ Função de controle do servidor FTP /================
+# Função de abertura do servidor
 def start_server():
     # Cria o socket do servidor
     global server, running, client_threads
@@ -235,12 +254,9 @@ def start_server():
     except KeyboardInterrupt:
         print("Usuário deu ctrl+C")
         server.close()
-    # finally:
-    #     server.close()  # Assegura que o socket seja fechado quando a thread terminar
-    #     print("Servidor finalizado.")
 
 
-
+# Função de fechamento do servidor
 def stop_server():
     global server, running, client_threads
     running = False
@@ -258,7 +274,6 @@ def stop_server():
         server = None
 
     print("Servidor fechado.")
-
 
 
 # Execução principal do programa

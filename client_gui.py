@@ -39,10 +39,10 @@ class MyFTPGUI:
         self.root_window.protocol("WM_DELETE_WINDOW", self.close_app) # Encerra a aplicação no botao
         self.center_window(950, 600)    # Centraliza a janela
         
-        self.login_screen()
-        self.create_frame_main()
-        # self.main_screen()
+        self.login_screen() # Funcao que monta o painel de login
+        self.create_frame_main() # Funcao que monta o frame principal do servidor
         
+    # Funcao que monta o painel de login
     def login_screen(self):
         # ================/ Configuracao da janela de login /================
 
@@ -63,7 +63,7 @@ class MyFTPGUI:
         tk.Button(self.frame_login, text="Conectar", command=self.start_connection).pack(pady=60) # Botão para conectar ao servidor
         
         
-    
+    # Funcao que centraliza a janela do programa
     def center_window(self, width, height):
         # Obtém a largura e altura da tela do usuário
         screen_width = self.root_window.winfo_screenwidth()
@@ -76,26 +76,17 @@ class MyFTPGUI:
         # Define a geometria da janela
         self.root_window.geometry(f"{width}x{height}+{x}+{y}")
     
-
+    # Funcao que monta o frame principal do servidor
     def create_frame_main(self):
-        # ================/ Configuracao do frame principal de comandos /================
+        
+        # ================/ Configuracao do frame principal /================
         self.frame_main = tk.Frame(self.root_window)
         
-        
-        # Top navigation bar
+        # Frame do topo com botoes de atualizar, novo diretorio e remover diretorio
         top_frame = tk.Frame(self.frame_main, height=40)
         top_frame.pack(fill="x", side="top")
         
-        # Server path display
-        # self.server_path_var = tk.StringVar(value="/")
-        # path_label = tk.Label(top_frame, text="Server Path:")
-        # path_label.pack(side="left", padx=5, pady=5)
-        
-        # server_path_display = tk.Entry(top_frame, textvariable=self.server_path_var, 
-        #                                width=40, state="readonly")
-        # server_path_display.pack(side="left", padx=5, pady=5)
-        
-        # Buttons for common operations
+        # Botoes do frame do topo
         refresh_btn = tk.Button(top_frame, text="Atualizar", command=self.refresh_both)
         refresh_btn.pack(side="left", padx=10, pady=5)
         
@@ -105,11 +96,11 @@ class MyFTPGUI:
         rmdir_btn = tk.Button(top_frame, text="Remover Diretório", command=self.show_rmdir_dialog)
         rmdir_btn.pack(side="right", padx=5, pady=5)
         
-        # Main content with status bar for messages
+        # Frame para o painel esquerdo (servidor)
         content_frame = tk.Frame(self.frame_main)
         content_frame.pack(fill="both", expand=True, padx=10, pady=5)
         
-        # Painel esquerdo
+        # Painel do servidor
         server_frame = tk.LabelFrame(content_frame, text="Arquivos do Servidor")
         server_frame.pack(side="left", fill="both", expand=True, padx=5, pady=5)
         
@@ -124,7 +115,7 @@ class MyFTPGUI:
         self.dir_label = tk.Label(server_toolbar, text=f"Diretório atual: 'server_files'")
         self.dir_label.pack(pady=20)  
               
-        # Arquivos do servidor
+        # Frame para arquivos do servidor
         server_file_frame = tk.Frame(server_frame)
         server_file_frame.pack(fill="both", expand=True)
         
@@ -142,7 +133,7 @@ class MyFTPGUI:
         transfer_frame = tk.Frame(content_frame)
         transfer_frame.pack(side="left", fill="y", padx=10, pady=5)
         
-        # Create transfer buttons
+        # Botões de transferência de arquivos
         to_server_btn = tk.Button(transfer_frame, text="←", font=("Arial", 16), width=2,
                                   command=self.upload_file)
         to_server_btn.pack(pady=10)
@@ -151,7 +142,7 @@ class MyFTPGUI:
                                   command=self.download_file)
         to_client_btn.pack(pady=10)
         
-        # Painel direito
+        # Frame para o painel direito (cliente)
         client_frame = tk.LabelFrame(content_frame , text="Arquivos do Cliente")
         client_frame.pack(side="right", fill="both", expand=True, padx=5, pady=5)
         
@@ -168,7 +159,7 @@ class MyFTPGUI:
         self.client_files_list.config(yscrollcommand=client_scrollbar.set)
         client_scrollbar.config(command=self.client_files_list.yview)
         
-        # Caixa de respostas
+        # Caixa dos feedbacks do servidor
         bottom_frame = tk.Frame(self.frame_main, height=40)
         bottom_frame.pack(fill="x", side="bottom")
         
@@ -176,18 +167,17 @@ class MyFTPGUI:
         self.text_output = tk.Text(bottom_frame, height=10, width=55)
         self.text_output.pack(padx=10, pady=5, fill="both", expand=True)
         
-        
         if DEBUG:
             self.start_connection()
 
-    # Métodos
+    # ================/ Métodos de atualização dos paineis /================
     
+    # Função que atualiza o nome do diretorio atuals
     def update_dir_label(self, new_dirname):
         self.dir_label.config(text=f"Diretório atual: '{new_dirname}'")
     
-    
+    # Função que atualiza os arquivos do painel do cliente
     def refresh_client_files(self):
-        """Refresh the client files list"""
         self.client_files_list.delete(0, tk.END)
         
         try:
@@ -204,94 +194,128 @@ class MyFTPGUI:
             self.text_output.insert(tk.END, f"Erro ao carregar arquivos do cliente: {str(e)}\n")
             self.text_output.see(tk.END)
     
+    # Função que atualiza os arquivos do painel do servidor
     def refresh_server_files(self):
-        """Refresh the server files list"""
         self.server_files_list.delete(0, tk.END)
         
         if not self.logged_in:
             return
             
         try:
-            # Send ls command to get server files
-            self.MyFTPClient.send_command("ls")
-            response = self.MyFTPClient.server_response()
+            self.MyFTPClient.send_command("ls")             # Envio do comando ao servidor
+            response = self.MyFTPClient.server_response()   # Capturando a resposta
             
-            # Process the response
-            if  "O diretório está vazio" in response:
+            # Validação do diretório vazio
+            if  "O diretório está vazio" in response: 
                 self.text_output.see(tk.END)
             else:
-                # Split the response by newlines to get file list
-                files = response.strip().split('\n')
-                # Remove the prompt part if present
-                files = [f for f in files if f and not f.startswith("Servidor MyFTP>")]
-                
-                for file in sorted(files):
-                    self.server_files_list.insert(tk.END, file)
-                
+                # Retira caracteres invalidos
+                files = response.strip().split('\n') 
+                # Retira o prompt do servidor, se necessario
+                files = [f for f in files if f and not f.startswith("Servidor MyFTP>")] 
+                # Ordena com prioridade em pastas e depois ordem alfabetica
+                for file in sorted(files, key=lambda f: (not f.endswith("/"), f.lower())): 
+                    # Caso seja uma pasta:
+                    if file.endswith("/"): 
+                        file = file[:-1]                                    # Remove o último caractere
+                        self.server_files_list.insert(tk.END, "📁" + file)  # Adiciona o emoji de pasta
+                    # Se for arquivo, será apenas adicionado
+                    else: 
+                        self.server_files_list.insert(tk.END, file)  
+        # Captura de exceptions       
         except Exception as e:
            self.text_output.insert(tk.END, f"Erro ao carregar arquivos do servidor: {str(e)}\n")
            self.text_output.see(tk.END)
     
+    # Função que atualiza ambos os paineis, cliente e servidor.
     def refresh_both(self):
-        """Refresh both file lists"""
         self.refresh_client_files()
         self.refresh_server_files()
         
         self.text_output.delete("1.0", tk.END)  # Limpa toda a área de texto
 
+    # Função que adiciona um novo diretório
     def show_mkdir_dialog(self):
+        # Abre uma caixa perguntando o nome do novo diretorio
         folder_name = tk.simpledialog.askstring("Novo Diretório", "Insira o nome do diretório:")
+
+        # Se o nome não for vazio
         if folder_name:
-            self.MyFTPClient.send_command(f"mkdir {folder_name}")
-            response = self.MyFTPClient.server_response()
             
+            # Validação de caracteres invalidos
+            invalid_chars = ['\\', '/', ':', '*', '?', '"', '<', '>', '|']
+            if any(char in folder_name for char in invalid_chars): # Caso algum desses caracteres esteja no nome do diretorio
+                messagebox.showerror("ERRO", "O diretório não pode conter nenhum dos seguintes caracteres: '\\', '/', ':', '*', '?', '\"', '<', '>', '|'")
+                return
+            # Caso contrario envia o nome do diretorio
+            else:
+                self.MyFTPClient.send_command(f"mkdir {folder_name}")
+                response = self.MyFTPClient.server_response()
+
+            # Validacao caso o diretorio já exista
             if "Este diretório já existe" in response:
                 messagebox.showerror("ERRO","Este diretório já existe no sistema!")
                 return
             
+            # Mensagem de feedback
             self.text_output.insert(tk.END, f"Diretório '{folder_name}' criado com Sucesso!\n")
             self.text_output.see(tk.END)
             self.refresh_server_files()
 
+    # Função que remove um diretório
     def show_rmdir_dialog(self):
         selection = self.server_files_list.curselection()
         
+        # Validação de seleção da pasta
         if not selection:
             messagebox.showerror("ERRO","Por favor, selecione alguma pasta")
             return
         
+        # Obtem o nome da pasta
         folder_name = self.server_files_list.get(selection[0])    
         
+        # Retirando o caracter 📁
+        if  folder_name.startswith("📁"):
+            folder_name = folder_name[1:]
+        
+        # Caixa de confirmação
         if messagebox.askokcancel("Remover pasta", f"Tem certeza que deseja remover o diretório '{folder_name}'? Todos os arquivos contidos nele serão deletados"):
+            # Envio do comando
             if self.MyFTPClient.send_command(f"rmdir {folder_name}"):
                 response = self.MyFTPClient.server_response()
+
+                # Mensagem de feedback
                 self.text_output.insert(tk.END, (response.strip() + "\n"))
                 self.text_output.see(tk.END)
                 self.refresh_server_files()
 
+    # Função que transfere um arquivo do servidor para o cliente
     def download_file(self):
-        """Download selected file from client to server"""
         selection = self.server_files_list.curselection()
         
+        # Validação de seleção do arquivo
         if not selection:
             messagebox.showinfo("Selection Required", "Please select a file to download")
             return
-            
+        
+        # Obtendo o arquivo a ser baixado        
         filename = self.server_files_list.get(selection[0])
         
-        # Não baixar diretórios
-        if filename.endswith("/"):
-            messagebox.showinfo("Cannot Download", "Cannot download directories")
+        # Validação do download de diretórios
+        if filename.startswith("📁"):
+            messagebox.showerror("ERRO", "Não é possível baixar diretórios!")
             return
         
-        """Navigate to parent directory"""
         if not self.logged_in:
             return
             
+        # Bloco try-catch para o envio do comando
         try:
             self.MyFTPClient.send_command(f"get {filename}")
+            # Resposta do servidor
             response = self.MyFTPClient.server_response()
-            file_get = response[4:].strip()  # Extrai o nome do arquivo da resposta
+            # Extrai o nome do arquivo da resposta
+            file_get = response[4:].strip()  
             
             # Usa o cliente correto para enviar "READY"
             self.MyFTPClient.client.sendall("READY".encode())
@@ -310,106 +334,154 @@ class MyFTPGUI:
                         break
                     f.write(data)
             
+            # Mensagem de feedback 
             self.text_output.insert(tk.END, f"Arquivo '{file_get}' recebido com sucesso!\n")
             self.text_output.see(tk.END)
             self.refresh_client_files()
+        
+        # Tratamento e exceções
         except Exception as e:
             self.text_output.insert(tk.END, f"Erro {str(e)}\n")
             self.text_output.see(tk.END)
 
+    # Função que transfere um arquivo do cliente para o servidor
     def upload_file(self):
-        """Upload selected file from client to server"""
         selection = self.client_files_list.curselection()
+        
+        # Validação de seleção do arquivo
         if not selection:
             messagebox.showinfo("Selection Required", "Please select a file to upload")
             return
-            
+        
+        # Obtendo o arquivo a ser enviado
         filename = self.client_files_list.get(selection[0])
         
-        """Navigate to parent directory"""
         if not self.logged_in:
             return
             
+        # Bloco try-catch para o envio do comando
         try:
             self.MyFTPClient.send_command(f"put {filename}")
+            # Resposta do servidor
             response = self.MyFTPClient.server_response()
             
-            if response.startswith("put "):
+            # Se o servidor responde positivamente, começa o envio dos dados
+            if  response.startswith("put "):
                 file_path = os.path.join(BASE_DIR, filename)
                 
                 with open(file_path, "rb") as f:
                     data = f.read(1024)
+                    # Enquanto houverem dados a serem enviados, continua enviando pacotes
                     while data:
                         self.MyFTPClient.client.sendall(data)
+
                         data = f.read(1024)
-                
+                # Mensagem do fim da transmissão
                 self.MyFTPClient.client.sendall(b"FIM_TRANSMISSAO")
+            # Caso contrário, houve algum erro no envio
             else:
                 self.root_window.after(0, self.text_output.insert(tk.END, f"Upload falhou: {response}"))
                 self.text_output.see(tk.END)
             
             print("cabou")
             
+            # Mensagem de feedback 
             self.text_output.insert(tk.END, f"Arquivo '{filename}' enviado com sucesso!\n")
             self.text_output.see(tk.END)
             self.refresh_server_files()
+        
+        # Tratamento de exceções
         except Exception as e:
             self.text_output.insert(tk.END, f"Erro {str(e)}\n")
             self.text_output.see(tk.END)
 
+    # Função que trata o clique duplo (mudança de pasta)
     def on_server_item_dblclick(self, event):
-        """Handle double-click on server item (navigate folders)"""
+        # Obtendo o item selecionado e o nome do diretório
         selection = self.server_files_list.curselection()
         directory_name = self.server_files_list.get(selection[0])
         
-        self.change_directory(directory_name)
+        # Se for uma pasta, primeiro o emoji será removido
+        if  directory_name.startswith("📁"):
+            directory_name = directory_name[1:] 
+            # Chamada da função que troca diretórios
+            self.change_directory(directory_name)
+            
+        # Caso contrário, não permite a troca
+        else:
+            self.text_output.insert(tk.END, "O arquivo não é um diretório!\n")
+            self.text_output.see(tk.END)
     
+    # Função que volta um diretório
     def go_up_directory(self):
-        """Navigate to parent directory"""
         if not self.logged_in:
             return
-            
+        
+        # Bloco try-catch para o envio do comando "cd.."
         try:
             self.MyFTPClient.send_command("cd ..")
+            # Resposta do servidor
             response = self.MyFTPClient.server_response()
+
+            # Mensagem de feedback
             self.text_output.insert(tk.END, (response.strip() + "\n"))
             self.text_output.see(tk.END)
             self.refresh_server_files()
+            
+            # Atualizando o label de diretório
             if "diretório raiz" in response:
                 self.update_dir_label("server_files")
             else:
                 self.update_dir_label(response[35:].strip())
+        
+        # Tratamento de exceções
         except Exception as e:
             self.text_output.insert(tk.END, f"Erro {str(e)}\n")
             self.text_output.see(tk.END)
 
+    # Função que avança um diretório
     def change_directory(self, folder_name):
         if not self.logged_in:
             return
-            
+        
+        # Bloco try-catch para o envio do comando "cd"
         try:
             self.MyFTPClient.send_command(f"cd {folder_name}")
+            # Resposta do servidor
             response = self.MyFTPClient.server_response()
             
+            # Se o diretório foi alterado com sucesso
             if "Diretório alterado" in response:
-                # Update display
-                if self.current_server_dir:
+
+                # Atualiza o diretório atual
+                if  self.current_server_dir:
                     self.current_server_dir += f"/{folder_name}"
                 else:
                     self.current_server_dir = folder_name
-                    
+                
+                # Atualiza o painel do servidor
                 self.refresh_server_files()
+                
+                # Mensagem de feedback
                 self.text_output.insert(tk.END, f"Mudou para o diretório: '{folder_name}'\n")
                 self.text_output.see(tk.END)
+                
+                # Atualiza a label
                 self.update_dir_label(folder_name)
+            
+            # Caso contrário, sinaliza erro
             else:
-                self.text_output.insert(tk.END, "O arquivo não é um diretório!\n")
+                self.text_output.insert(tk.END, "ERRO: O arquivo não é um diretório!\n")
                 self.text_output.see(tk.END)
+
+        # Tratamento de exceções
         except Exception as e:
             self.text_output.insert(tk.END, f"Erro: {str(e)}\n")
             self.text_output.see(tk.END)
 
+    # Função que inicia a conexão com o servidor
     def start_connection(self):
+        # Diretiva de debug para pular o login
         if DEBUG:
             user = "1"
             password = "1"
@@ -421,8 +493,10 @@ class MyFTPGUI:
         thread = threading.Thread(target=self.login_response, args=(user,password))
         thread.start()
 
+    # Função que captura a resposta do servidor para o login
     def login_response(self, user, password):
-        try: 
+        try:
+            # Diretiva de debug para pular o login
             if DEBUG:
                 self.MyFTPClient.login(user,password)
                 self.frame_login.pack_forget()  # Oculta a tela de login
@@ -431,37 +505,45 @@ class MyFTPGUI:
                 self.refresh_both()
                 return
             
+            # Se o login for bem-sucedido, exibe uma mensagem e troca para a tela principal
             if  self.MyFTPClient.login(user,password):
-                # Se o login for bem-sucedido, exibe uma mensagem e troca para a tela principal
                 messagebox.showinfo("Sucesso", "Login bem-sucedido!")
-                self.frame_login.pack_forget()  # Oculta a tela de login
+                # Oculta a tela de login
+                self.frame_login.pack_forget()  
                 self.frame_main.pack(fill="both", expand=True) 
+                # Atualiza a flag de login
                 self.logged_in = True
+                # Atualiza ambos os paineis
                 self.refresh_both()
 
+            # Se o login falhar, exibe uma mensagem de erro e fecha a conexão
             else:
-                # Se o login falhar, exibe uma mensagem de erro e fecha a conexão
                 messagebox.showerror("Erro", "Login falhou!")
                 self.MyFTPClient.disconnect(self.MyFTPClient) 
     
+        # Tratamento de exceções
         except Exception as e:
-            # Se houver falha na conexão, exibe uma mensagem de erro
             messagebox.showerror("Erro", f"Falha na conexão: {e}")
             self.client = None
     
+    # Função que encerra o MyFTP
     def close_app(self):
-        if self.logged_in: #Se o cliente ja fez o login, disconecta primeiro
+        # Se o cliente ja fez o login, primeiro realiza a desconexão com o servidor
+        if self.logged_in: 
+            # Diretiva de debug para pular a confirmação de encerramento
             if DEBUG:
                 self.MyFTPClient.send_command("exit")
                 self.MyFTPClient.disconnect()
                 self.root_window.destroy()
                 return
-            
+            # Confirmação do encerramento do programa
             if messagebox.askokcancel("Sair", "Tem certeza que deseja fechar o programa?"):
                 self.MyFTPClient.send_command("exit")
                 self.MyFTPClient.disconnect()
+            # Caso não confirme, apenas retorna
             else:
                 return
+        # Se o cliente ainda nem fez o login, apenas fecha a janela
         self.root_window.destroy()
         
 # ==================/ Função main /==================
