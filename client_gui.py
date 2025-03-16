@@ -296,7 +296,7 @@ class MyFTPGUI:
         
         # Validação de seleção do arquivo
         if not selection:
-            messagebox.showinfo("Selection Required", "Please select a file to download")
+            messagebox.showinfo("Arquivo não selecionado", "Por favor, selecione um arquivo para baixar")
             return
         
         # Obtendo o arquivo a ser baixado        
@@ -354,7 +354,7 @@ class MyFTPGUI:
         
         # Validação de seleção do arquivo
         if not selection:
-            messagebox.showinfo("Selection Required", "Please select a file to upload")
+            messagebox.showinfo("Arquivo não selecionado", "Por favor, selecione o arquivo a ser enviado")
             return
         
         # Obtendo o arquivo a ser enviado
