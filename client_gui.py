@@ -3,7 +3,7 @@ from tkinter import messagebox, simpledialog # Importa messagebox para exibir me
 import os                                    # Importa os para manipulação de diretórios e arquivos
 import threading                             # Importa threading para permitir múltiplas conexões simultâneas
 from client_ftp import MyFTPClient           # Importa a lógica do FTP
-
+import time
 
 # ==================/ Variaveis de escopo global /==================
 # Definição do endereço e porta do servidor FTP
@@ -380,6 +380,11 @@ class MyFTPGUI:
                         self.MyFTPClient.client.sendall(data)
 
                         data = f.read(1024)
+                        # Pequena pausa para evitar sobrecarregar o buffer
+                        time.sleep(0.001)
+                
+                # Pequena pausa antes de enviar fim de transmissão
+                time.sleep(0.1)
                 # Mensagem do fim da transmissão
                 self.MyFTPClient.client.sendall(b"FIM_TRANSMISSAO")
             # Caso contrário, houve algum erro no envio

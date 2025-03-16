@@ -1,6 +1,7 @@
 import socket     # Importa a biblioteca para comunicação via sockets
 import threading  # Importa threading para permitir múltiplas conexões simultâneas
 import os         # Importa os para manipulação de diretórios e arquivos
+import time
 
 # ==================/ Variaveis de escopo global /==================
 
@@ -215,7 +216,13 @@ def handle_client(connected_client, addr):
                             connected_client.sendall(data)
                             if DEBUG:
                                 print("pacote enviado")
+                            
                             data = f.read(1024)
+                            # Pequena pausa para evitar sobrecarregar o buffer
+                            time.sleep(0.001)
+                    
+                    # Pequena pausa antes de enviar fim de transmissão
+                    time.sleep(0.1)
                     
                     # Envia fim de transmissão
                     connected_client.sendall(b"FIM_TRANSMISSAO")  
