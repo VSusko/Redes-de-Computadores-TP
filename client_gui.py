@@ -15,7 +15,7 @@ BASE_DIR = os.path.abspath("client_files")
 os.makedirs(BASE_DIR, exist_ok=True)  # Cria a pasta se ela não existir
 
 # Flag de debug
-DEBUG = 1
+DEBUG = 0
 
 # ==================/ Classe para a interface /==================
 
@@ -342,6 +342,7 @@ class MyFTPGUI:
                 while True:
                     # Usa o cliente correto para receber os dados
                     data = self.MyFTPClient.client.recv(1024)
+                    # Atualizando a quantidade de bytes recebidos e da barra de transferência
                     bytes_recieved += 1024
                     self.update_transfer_bar(bytes_recieved / file_size * 100)
                     
@@ -350,6 +351,7 @@ class MyFTPGUI:
                     if b"FIM_TRANSMISSAO" in data:
                         if DEBUG:
                             print("fim dos pacotes no cliente")
+                        # Destruição da janela de transferência
                         self.progress_window.destroy()
                         break
                     f.write(data)
@@ -387,6 +389,7 @@ class MyFTPGUI:
             
             # Se o servidor responde positivamente, começa o envio dos dados
             if  response.startswith("put "):
+                # Obtendo caminho do arquivo
                 file_path = os.path.join(BASE_DIR, filename)
                 
                 # Tamanho do arquivo
@@ -405,7 +408,7 @@ class MyFTPGUI:
                     # Enquanto houverem dados a serem enviados, continua enviando pacotes
                     while data:
                         self.MyFTPClient.client.sendall(data)
-                        
+                        # Atualizando a quantidade de bytes enviados e da barra de transferência
                         bytes_sent += 1024
                         self.update_transfer_bar(bytes_sent / file_size * 100)
 
@@ -417,6 +420,7 @@ class MyFTPGUI:
                 time.sleep(0.1)
                 # Mensagem do fim da transmissão
                 self.MyFTPClient.client.sendall(b"FIM_TRANSMISSAO")
+                # Destruição da janela de transferência
                 self.progress_window.destroy()
             # Caso contrário, houve algum erro no envio
             else:
@@ -438,31 +442,38 @@ class MyFTPGUI:
 
     # Função que cria a janela de progresso (pop-up)
     def create_transfer_bar(self, download):        
+        # Definindo a janela
         self.progress_window = tk.Toplevel(self.frame_main)
         self.progress_window.grab_set()
         self.progress_window.protocol("WM_DELETE_WINDOW", lambda: None)
 
+        # Se for uma transferência de download, adiciona o título de baixando
         if download:
             self.progress_window.title("Baixando arquivo")
+        # Adiciona o título de upload, caso contrário
         else:
             self.progress_window.title("Enviando arquivo")
-        
+        # Tamanho da janela
         self.progress_window.geometry("300x100")
         
+        # Adicionando label de baixando/enviando
         if download:
             tk.Label(self.progress_window, text="Baixando...").pack(pady=5)
         else:
             tk.Label(self.progress_window, text="Enviando...").pack(pady=5)
-            
+        
+        # Definição da barra de progresso
         self.progress_bar = ttk.Progressbar(self.progress_window, length=250, mode="determinate")
         self.progress_label = tk.Label(self.progress_window, text="0%")
-
+        # Adicionando a barra
         self.progress_bar.pack(pady=5)
         self.progress_label.pack()
-        
+        # Centralizando a janela
         self.center_window(300,100,self.progress_window)
         
+    # Função que atualiza o valor da barra de transferência
     def update_transfer_bar(self, transfer_percentage):
+        # O valor é passado como parâmetro
         self.progress_label.config(text=f"{transfer_percentage:.0f}%")
         self.progress_bar["value"] = transfer_percentage
         self.progress_window.update()

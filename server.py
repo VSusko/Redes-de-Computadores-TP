@@ -23,7 +23,7 @@ running = False         # Flag para indicar se o servidor está rodando
 client_threads = []     # Lista de threads dos clientes
 
 # Flag de debug
-DEBUG = 1 
+DEBUG = 0 
 
 # ==================/ Funcoes auxiliares /==================
 
