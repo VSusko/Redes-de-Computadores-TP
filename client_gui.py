@@ -411,10 +411,10 @@ class MyFTPGUI:
 
                         data = f.read(1024)
                         # Pequena pausa para evitar sobrecarregar o buffer
-                        time.sleep(0.0000001)
+                        time.sleep(0.001)
                 
                 # Pequena pausa antes de enviar fim de transmissão
-                time.sleep(0.001)
+                time.sleep(0.1)
                 # Mensagem do fim da transmissão
                 self.MyFTPClient.client.sendall(b"FIM_TRANSMISSAO")
                 self.progress_window.destroy()

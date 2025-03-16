@@ -223,10 +223,10 @@ def handle_client(connected_client, addr):
                             
                             data = f.read(1024)
                             # Pequena pausa para evitar sobrecarregar o buffer
-                            time.sleep(0.0000001)
+                            time.sleep(0.001)
                     
                     # Pequena pausa antes de enviar fim de transmissão
-                    time.sleep(0.001)
+                    time.sleep(0.1)
                     
                     # Envia fim de transmissão
                     connected_client.sendall(b"FIM_TRANSMISSAO")  
