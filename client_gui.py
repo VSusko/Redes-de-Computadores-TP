@@ -1,5 +1,5 @@
 import tkinter as tk                         # Importa o módulo Tkinter para criar a interface gráfica
-from tkinter import messagebox, simpledialog # Importa messagebox para exibir mensagens ao usuário
+from tkinter import messagebox, ttk # Importa messagebox para exibir mensagens ao usuário
 import os                                    # Importa os para manipulação de diretórios e arquivos
 import threading                             # Importa threading para permitir múltiplas conexões simultâneas
 from client_ftp import MyFTPClient           # Importa a lógica do FTP
@@ -15,7 +15,7 @@ BASE_DIR = os.path.abspath("client_files")
 os.makedirs(BASE_DIR, exist_ok=True)  # Cria a pasta se ela não existir
 
 # Flag de debug
-DEBUG = 0
+DEBUG = 1
 
 # ==================/ Classe para a interface /==================
 
@@ -38,7 +38,7 @@ class MyFTPGUI:
         self.root_window.maxsize(950, 600)      # Define o tamanho máximo da janela             
         self.root_window.configure(bg = "lightgray")
         self.root_window.protocol("WM_DELETE_WINDOW", self.close_app) # Encerra a aplicação no botao
-        self.center_window(950, 600)    # Centraliza a janela
+        self.center_window(950, 600, self.root_window)    # Centraliza a janela
         
         self.login_screen() # Funcao que monta o painel de login
         self.create_frame_main() # Funcao que monta o frame principal do servidor
@@ -65,17 +65,17 @@ class MyFTPGUI:
         
         
     # Funcao que centraliza a janela do programa
-    def center_window(self, width, height):
+    def center_window(self, width, height, window):
         # Obtém a largura e altura da tela do usuário
-        screen_width = self.root_window.winfo_screenwidth()
-        screen_height = self.root_window.winfo_screenheight()
+        screen_width = window.winfo_screenwidth()
+        screen_height = window.winfo_screenheight()
         
         # Calcula a posição para centralizar a janela
         x = (screen_width - width) // 2
         y = (screen_height - height) // 2
         
         # Define a geometria da janela
-        self.root_window.geometry(f"{width}x{height}+{x}+{y}")
+        window.geometry(f"{width}x{height}+{x}+{y}")
     
     # Funcao que monta o frame principal do servidor
     def create_frame_main(self):
@@ -326,15 +326,31 @@ class MyFTPGUI:
             # Define o caminho completo para salvar o arquivo
             save_path = os.path.join(BASE_DIR, file_get)
             
+            # Recebimento do tamanho do arquivo
+            file_size = self.MyFTPClient.client.recv(1024).decode()
+            file_size = int(file_size[9:])
+            # Tratamento de arquivo vazio
+            if file_size == 0:
+                file_size = 1
+            # Variavel do numero de bytes total recebidos
+            bytes_recieved = 0
+                
             with open(save_path, "wb") as f:
+                # Cria a janela de transferência
+                self.create_transfer_bar(download=True)
+                
                 while True:
                     # Usa o cliente correto para receber os dados
                     data = self.MyFTPClient.client.recv(1024)
+                    bytes_recieved += 1024
+                    self.update_transfer_bar(bytes_recieved / file_size * 100)
+                    
                     if DEBUG:
                         print("pacote recebido")
                     if b"FIM_TRANSMISSAO" in data:
                         if DEBUG:
                             print("fim dos pacotes no cliente")
+                        self.progress_window.destroy()
                         break
                     f.write(data)
             
@@ -373,20 +389,35 @@ class MyFTPGUI:
             if  response.startswith("put "):
                 file_path = os.path.join(BASE_DIR, filename)
                 
+                # Tamanho do arquivo
+                file_size = os.path.getsize(file_path) 
+                # Tratamento de arquivo vazio
+                if file_size == 0:
+                    file_size = 1
+                # Variavel do numero de bytes total enviados
+                bytes_sent = 0
+                
                 with open(file_path, "rb") as f:
+                    # Cria a janela de transferência
+                    self.create_transfer_bar(download=False)
+                    
                     data = f.read(1024)
                     # Enquanto houverem dados a serem enviados, continua enviando pacotes
                     while data:
                         self.MyFTPClient.client.sendall(data)
+                        
+                        bytes_sent += 1024
+                        self.update_transfer_bar(bytes_sent / file_size * 100)
 
                         data = f.read(1024)
                         # Pequena pausa para evitar sobrecarregar o buffer
-                        time.sleep(0.001)
+                        time.sleep(0.0000001)
                 
                 # Pequena pausa antes de enviar fim de transmissão
-                time.sleep(0.1)
+                time.sleep(0.001)
                 # Mensagem do fim da transmissão
                 self.MyFTPClient.client.sendall(b"FIM_TRANSMISSAO")
+                self.progress_window.destroy()
             # Caso contrário, houve algum erro no envio
             else:
                 self.root_window.after(0, self.text_output.insert(tk.END, f"Upload falhou: {response}"))
@@ -404,6 +435,37 @@ class MyFTPGUI:
         except Exception as e:
             self.text_output.insert(tk.END, f"Erro {str(e)}\n")
             self.text_output.see(tk.END)
+
+    # Função que cria a janela de progresso (pop-up)
+    def create_transfer_bar(self, download):        
+        self.progress_window = tk.Toplevel(self.frame_main)
+        self.progress_window.grab_set()
+        self.progress_window.protocol("WM_DELETE_WINDOW", lambda: None)
+
+        if download:
+            self.progress_window.title("Baixando arquivo")
+        else:
+            self.progress_window.title("Enviando arquivo")
+        
+        self.progress_window.geometry("300x100")
+        
+        if download:
+            tk.Label(self.progress_window, text="Baixando...").pack(pady=5)
+        else:
+            tk.Label(self.progress_window, text="Enviando...").pack(pady=5)
+            
+        self.progress_bar = ttk.Progressbar(self.progress_window, length=250, mode="determinate")
+        self.progress_label = tk.Label(self.progress_window, text="0%")
+
+        self.progress_bar.pack(pady=5)
+        self.progress_label.pack()
+        
+        self.center_window(300,100,self.progress_window)
+        
+    def update_transfer_bar(self, transfer_percentage):
+        self.progress_label.config(text=f"{transfer_percentage:.0f}%")
+        self.progress_bar["value"] = transfer_percentage
+        self.progress_window.update()
 
     # Função que trata o clique duplo (mudança de pasta)
     def on_server_item_dblclick(self, event):

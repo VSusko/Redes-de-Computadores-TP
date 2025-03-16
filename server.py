@@ -23,7 +23,7 @@ running = False         # Flag para indicar se o servidor está rodando
 client_threads = []     # Lista de threads dos clientes
 
 # Flag de debug
-DEBUG = 0 
+DEBUG = 1 
 
 # ==================/ Funcoes auxiliares /==================
 
@@ -209,8 +209,12 @@ def handle_client(connected_client, addr):
                 if connected_client.recv(1024).decode().strip() == "READY":
                     if DEBUG:
                         print("ready recebido")
+
+                    # Envio do tamanho do arquivo
+                    file_size = os.path.getsize(get_dir_name)  
+                    connected_client.sendall(f"Tamanho ={file_size}".encode())
                     
-                    with open(get_dir_name, "rb") as f:
+                    with open(get_dir_name, "rb") as f:    
                         data = f.read(1024)
                         while data:
                             connected_client.sendall(data)
@@ -219,10 +223,10 @@ def handle_client(connected_client, addr):
                             
                             data = f.read(1024)
                             # Pequena pausa para evitar sobrecarregar o buffer
-                            time.sleep(0.001)
+                            time.sleep(0.0000001)
                     
                     # Pequena pausa antes de enviar fim de transmissão
-                    time.sleep(0.1)
+                    time.sleep(0.001)
                     
                     # Envia fim de transmissão
                     connected_client.sendall(b"FIM_TRANSMISSAO")  
@@ -260,7 +264,6 @@ def start_server():
     # Loop infinito para aceitar conexões de clientes
     try:
         while running:
-            # server.settimeout(5)  # Timeout de 1 segundo para evitar bloqueio
             try:
                 connected_client, addr = server.accept()
                 print(f"Conexão recebida de {addr}")
