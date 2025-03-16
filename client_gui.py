@@ -1,8 +1,8 @@
-import tkinter as tk                         # Importa o módulo Tkinter para criar a interface gráfica
-from tkinter import messagebox, ttk # Importa messagebox para exibir mensagens ao usuário
-import os                                    # Importa os para manipulação de diretórios e arquivos
-import threading                             # Importa threading para permitir múltiplas conexões simultâneas
-from client_ftp import MyFTPClient           # Importa a lógica do FTP
+import tkinter as tk                              # Importa o módulo Tkinter para criar a interface gráfica
+from tkinter import messagebox, ttk, simpledialog # Importa messagebox para exibir mensagens ao usuário
+import os                                         # Importa os para manipulação de diretórios e arquivos
+import threading                                  # Importa threading para permitir múltiplas conexões simultâneas
+from client_ftp import MyFTPClient                # Importa a lógica do FTP
 import time
 
 # ==================/ Variaveis de escopo global /==================
