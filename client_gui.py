@@ -246,7 +246,7 @@ class MyFTPGUI:
             # Validação de caracteres invalidos
             invalid_chars = ['\\', '/', ':', '*', '?', '"', '<', '>', '|']
             if any(char in folder_name for char in invalid_chars): # Caso algum desses caracteres esteja no nome do diretorio
-                messagebox.showerror("ERRO", "O diretório não pode conter nenhum dos seguintes caracteres: '\\', '/', ':', '*', '?', '\"', '<', '>', '|'")
+                messagebox.showerror("ERRO", "O nome do diretório não pode conter nenhum dos seguintes caracteres: '\\', '/', ':', '*', '?', '\"', '<', '>', '|'")
                 return
             # Caso contrario envia o nome do diretorio
             else:
@@ -269,7 +269,7 @@ class MyFTPGUI:
         
         # Validação de seleção da pasta
         if not selection:
-            messagebox.showerror("ERRO","Por favor, selecione alguma pasta")
+            messagebox.showinfo("Pasta não selecionada","Por favor, selecione alguma pasta")
             return
         
         # Obtem o nome da pasta
@@ -296,7 +296,7 @@ class MyFTPGUI:
         
         # Validação de seleção do arquivo
         if not selection:
-            messagebox.showinfo("Arquivo não selecionado", "Por favor, selecione um arquivo para baixar")
+            messagebox.showinfo("Arquivo não selecionado", "Por favor, selecione algum arquivo")
             return
         
         # Obtendo o arquivo a ser baixado        
@@ -370,7 +370,7 @@ class MyFTPGUI:
         
         # Validação de seleção do arquivo
         if not selection:
-            messagebox.showinfo("Arquivo não selecionado", "Por favor, selecione o arquivo a ser enviado")
+            messagebox.showinfo("Arquivo não selecionado", "Por favor, selecione algum arquivo")
             return
         
         # Obtendo o arquivo a ser enviado
@@ -535,7 +535,7 @@ class MyFTPGUI:
                 self.refresh_server_files()
                 
                 # Mensagem de feedback
-                self.text_output.insert(tk.END, f"Mudou para o diretório: '{folder_name}'\n")
+                self.text_output.insert(tk.END, f"Diretório alterado para: '{folder_name}'\n")
                 self.text_output.see(tk.END)
                 
                 # Atualiza a label
