@@ -6,7 +6,7 @@ import time
 # ==================/ Variaveis de escopo global /==================
 
 # Dicionário de usuários cadastrados no servidor (login: senha)
-USERS = {"1": "1", "user2": "pass2"}
+USERS = {"user1": "user1", "user2": "pass2"}
 
 # Configurações do servidor FTP
 HOST = "0.0.0.0"  # Aceita conexões de qualquer IP
